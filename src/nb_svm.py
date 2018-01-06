@@ -1,62 +1,58 @@
-import pandas as pd, numpy as np
+import numpy as np
+import pandas as pd
+
+from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
-from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
+from sklearn.model_selection import cross_val_score
+from scipy.sparse import hstack
 
-train = pd.read_csv('../input/train.csv')
-test = pd.read_csv('../input/test.csv')
-subm = pd.read_csv('../input/sample_submission.csv')
+class_names = ['toxic', 'severe_toxic', 'obscene', 'threat', 'insult', 'identity_hate']
 
-train.head()
+train = pd.read_csv('../input/train.csv').fillna(' ')
+test = pd.read_csv('../input/test.csv').fillna(' ')
 
-lens = train.comment_text.str.len()
-print(lens.mean(), lens.std(), lens.max())
+train_text = train['comment_text']
+test_text = test['comment_text']
+all_text = pd.concat([train_text, test_text])
 
-#lens.hist()
+word_vectorizer = TfidfVectorizer(
+    sublinear_tf=True,
+    strip_accents='unicode',
+    analyzer='word',
+    token_pattern=r'\w{1,}',
+    ngram_range=(1,1),
+    max_features=20000)
+word_vectorizer.fit(all_text)
+train_word_features = word_vectorizer.transform(train_text)
+test_word_features = word_vectorizer.transform(test_text)
 
-label_cols = ['toxic', 'severe_toxic', 'obscene', 'threat', 'insult', 'identity_hate']
-train['none'] = 1-train[label_cols].max(axis=1)
-train.describe()
+char_vectorizer = TfidfVectorizer(
+    sublinear_tf=True,
+    strip_accents='unicode',
+    analyzer='char',
+    ngram_range=(1, 4),
+    max_features=20000)
+char_vectorizer.fit(all_text)
+train_char_features = char_vectorizer.transform(train_text)
+test_char_features = char_vectorizer.transform(test_text)
 
-print(len(train),len(test))
+train_features = hstack((train_char_features, train_word_features))
+test_features = hstack((test_char_features, test_word_features))
 
-COMMENT = 'comment_text'
-train[COMMENT].fillna("unknown", inplace=True)
-test[COMMENT].fillna("unknown", inplace=True)
+losses = []
+predictions = {'id': test['id']}
+for class_name in class_names:
+    train_target = train[class_name]
+    classifier = LogisticRegression(C=4.0, solver='sag')
 
+    cv_loss = np.mean(cross_val_score(classifier, train_features, train_target, cv=3, scoring='neg_log_loss'))
+    losses.append(cv_loss)
+    print('CV loss for class {} is {}'.format(class_name, cv_loss))
 
-import re, string
-re_tok = re.compile(r'([{string.punctuation}“”¨«»®´·º½¾¿¡§£₤‘’])')
-def tokenize(s): return re_tok.sub(r' \1 ', s).split()
+    classifier.fit(train_features, train_target)
+    predictions[class_name] = classifier.predict_proba(test_features)[:, 1]
 
-n = train.shape[0]
-vec = TfidfVectorizer(ngram_range=(1,2), tokenizer=tokenize,
-               min_df=3, max_df=0.9, strip_accents='unicode', use_idf=1,
-               smooth_idf=1, sublinear_tf=1 )
-trn_term_doc = vec.fit_transform(train[COMMENT])
-test_term_doc = vec.transform(test[COMMENT])
+print('Total CV loss is {}'.format(np.mean(losses)))
 
-def pr(y_i, y):
-    p = x[y==y_i].sum(0)
-    return (p+1) / ((y==y_i).sum()+1)
-
-x = trn_term_doc
-test_x = test_term_doc
-
-
-def get_mdl(y):
-    y = y.values
-    r = np.log(pr(1,y) / pr(0,y))
-    m = LogisticRegression(C=4, dual=True)
-    x_nb = x.multiply(r)
-    return m.fit(x_nb, y), r
-
-preds = np.zeros((len(test), len(label_cols)))
-
-for i, j in enumerate(label_cols):
-    print('fit', j)
-    m,r = get_mdl(train[j])
-    preds[:,i] = m.predict_proba(test_x.multiply(r))[:,1]
-
-submid = pd.DataFrame({'id': subm["id"]})
-submission = pd.concat([submid, pd.DataFrame(preds, columns = label_cols)], axis=1)
-submission.to_csv('../input/submission_svm.csv', index=False)
+submission = pd.DataFrame.from_dict(predictions)
+submission.to_csv('../output/nb_svm_submission.csv', index=False)
