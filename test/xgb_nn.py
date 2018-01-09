@@ -43,20 +43,20 @@ from keras.callbacks import EarlyStopping
 from sklearn.decomposition import NMF, LatentDirichletAllocation
 
 # Read data
-train = "./input/train.csv"
-test = "./input/test.csv"
-wv = "./input/glove.6B.100d.txt"
+train = "../input/train.csv"
+test = "../input/test.csv"
+wv = "../input/glove.6B.100d.txt"
 X_train = pd.read_csv( train, header=0,delimiter="," )
 X_test = pd.read_csv( test, header=0,delimiter="," )
 
-authors = ['EAP','MWS','HPL']
-Y_train = LabelEncoder().fit_transform(X_train['author'])
+list_classes = ["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]
+Y_train = in_df[list_classes].values
 test_id = X_test['id'].values
 
 # Clean data
 def clean(X_train,X_test):
-    X_train['words'] = [re.sub("[^a-zA-Z]"," ", data).lower().split() for data in X_train['text']]
-    X_test['words'] = [re.sub("[^a-zA-Z]"," ", data).lower().split() for data in X_test['text']]
+    X_train['words'] = [re.sub("[^a-zA-Z]"," ", data).lower().split() for data in X_train['comment_text']]
+    X_test['words'] = [re.sub("[^a-zA-Z]"," ", data).lower().split() for data in X_test['comment_text']]
     return X_train,X_test
 X_train,X_test = clean(X_train,X_test)
 
@@ -65,10 +65,10 @@ X_train,X_test = clean(X_train,X_test)
 punctuations = [{"id":1,"p":"[;:]"},{"id":2,"p":"[,.]"},{"id":3,"p":"[?]"},{"id":4,"p":"[\']"},{"id":5,"p":"[\"]"},{"id":6,"p":"[;:,.?\'\"]"}]
 for p in punctuations:
     punctuation = p["p"]
-    _train =  [ sentence.split() for sentence in X_train['text'] ]
+    _train =  [ sentence.split() for sentence in X_train['comment_text'] ]
     X_train['punc_'+str(p["id"])] = [len([word for word in sentence if bool(re.search(punctuation, word))])*100.0/len(sentence) for sentence in _train]    
 
-    _test =  [ sentence.split() for sentence in X_test['text'] ]
+    _test =  [ sentence.split() for sentence in X_test['comment_text'] ]
     X_test['punc_'+str(p["id"])] = [len([word for word in sentence if bool(re.search(punctuation, word))])*100.0/len(sentence) for sentence in _test]   
 
 # Feature Engineering
@@ -83,9 +83,9 @@ X_test['stop_word'] = [len([word for word in sentence if word in stopwords.words
 # tfidf - words - nb
 def tfidfWords(X_train,X_test):
     tfidf_vec = TfidfVectorizer(stop_words='english', ngram_range=(1,3))
-    full_tfidf = tfidf_vec.fit_transform(X_train['text'].values.tolist() + X_test['text'].values.tolist())
-    train_tfidf = tfidf_vec.transform(X_train['text'].values.tolist())
-    test_tfidf = tfidf_vec.transform(X_test['text'].values.tolist())
+    full_tfidf = tfidf_vec.fit_transform(X_train['comment_text'].values.tolist() + X_test['comment_text'].values.tolist())
+    train_tfidf = tfidf_vec.transform(X_train['comment_text'].values.tolist())
+    test_tfidf = tfidf_vec.transform(X_test['comment_text'].values.tolist())
     return train_tfidf,test_tfidf,full_tfidf
     
 def runMNB(train_X, train_y, test_X, test_y, test_X2):
@@ -124,9 +124,9 @@ X_test["tfidf_words_nb_mws"] = pred_test[:,2]
 # tfidf - chars - nb
 def tfidfWords(X_train,X_test):
     tfidf_vec = TfidfVectorizer(stop_words='english', ngram_range=(1,5),analyzer='char')
-    full_tfidf = tfidf_vec.fit_transform(X_train['text'].values.tolist() + X_test['text'].values.tolist())
-    train_tfidf = tfidf_vec.transform(X_train['text'].values.tolist())
-    test_tfidf = tfidf_vec.transform(X_test['text'].values.tolist())
+    full_tfidf = tfidf_vec.fit_transform(X_train['comment_text'].values.tolist() + X_test['comment_text'].values.tolist())
+    train_tfidf = tfidf_vec.transform(X_train['comment_text'].values.tolist())
+    test_tfidf = tfidf_vec.transform(X_test['comment_text'].values.tolist())
     return train_tfidf,test_tfidf
     
 def runMNB(train_X, train_y, test_X, test_y, test_X2):
@@ -164,9 +164,9 @@ X_test["tfidf_chars_nb_mws"] = pred_test[:,2]
 # count - words - nb
 def countWords(X_train,X_test):
     count_vec = CountVectorizer(stop_words='english', ngram_range=(1,3))
-    count_vec.fit(X_train['text'].values.tolist() + X_test['text'].values.tolist())
-    train_count = count_vec.transform(X_train['text'].values.tolist())
-    test_count = count_vec.transform(X_test['text'].values.tolist())
+    count_vec.fit(X_train['comment_text'].values.tolist() + X_test['comment_text'].values.tolist())
+    train_count = count_vec.transform(X_train['comment_text'].values.tolist())
+    test_count = count_vec.transform(X_test['comment_text'].values.tolist())
     return train_count,test_count
     
 def runMNB(train_X, train_y, test_X, test_y, test_X2):
@@ -205,9 +205,9 @@ X_test["count_words_nb_mws"] = pred_test[:,2]
 # count - chars - nb
 def countChars(X_train,X_test):
     count_vec = CountVectorizer(ngram_range=(1,7),analyzer='char')
-    count_vec.fit(X_train['text'].values.tolist() + X_test['text'].values.tolist())
-    train_count = count_vec.transform(X_train['text'].values.tolist())
-    test_count = count_vec.transform(X_test['text'].values.tolist())
+    count_vec.fit(X_train['comment_text'].values.tolist() + X_test['comment_text'].values.tolist())
+    train_count = count_vec.transform(X_train['comment_text'].values.tolist())
+    test_count = count_vec.transform(X_test['comment_text'].values.tolist())
     return train_count,test_count
     
 def runMNB(train_X, train_y, test_X, test_y, test_X2):
@@ -284,7 +284,7 @@ def doGlove(x_train,x_test):
     xtest_glove = np.array(xtest_glove)
     return xtrain_glove,xtest_glove,embeddings_index
 
-glove_vecs_train,glove_vecs_test,embeddings_index = doGlove(X_train['text'],X_test['text'])
+glove_vecs_train,glove_vecs_test,embeddings_index = doGlove(X_train['comment_text'],X_test['comment_text'])
 X_train[['sent_vec_'+str(i) for i in range(100)]] = pd.DataFrame(glove_vecs_train.tolist())
 X_test[['sent_vec_'+str(i) for i in range(100)]] = pd.DataFrame(glove_vecs_test.tolist())
 
@@ -326,12 +326,12 @@ def doNN(X_train,X_test,Y_train):
     
     print('Processing text dataset')
     texts_1 = []
-    for text in X_train['text']:
+    for text in X_train['comment_text']:
         texts_1.append(text)
 
     print('Found %s texts.' % len(texts_1))
     test_texts_1 = []
-    for text in X_test['text']:
+    for text in X_test['comment_text']:
         test_texts_1.append(text)
     print('Found %s texts.' % len(test_texts_1))
     
