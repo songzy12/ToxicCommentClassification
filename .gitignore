@@ -2,3 +2,4 @@ input/
 output/
 *.swp
 *.hdf5
+*checkpoints
