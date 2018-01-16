@@ -596,19 +596,18 @@ train_df = pd.concat([train_df, train_svd], axis=1)
 test_df = pd.concat([test_df, test_svd], axis=1)
 del full_tfidf, train_tfidf, test_tfidf, train_svd, test_svd
 
-def runXGB(train_X, train_y, test_X, test_y=None, test_X2=None, seed_val=0, child=1, colsample=0.3):
+def runXGB(train_X, train_y, test_X, test_y=None, feature_names=None, seed_val=2017, num_rounds=400):
     param = {}
-    param['objective'] = 'multi:softprob'
-    param['eta'] = 0.1
-    param['max_depth'] = 3
+    param['objective'] = 'binary:logistic'
+    param['eta'] = 0.12
+    param['max_depth'] = 5
     param['silent'] = 1
-    param['num_class'] = len(labels)
-    param['eval_metric'] = "mlogloss"
-    param['min_child_weight'] = child
-    param['subsample'] = 0.8
-    param['colsample_bytree'] = colsample
+    param['eval_metric'] = 'logloss'
+    param['min_child_weight'] = 1
+    param['subsample'] = 0.5
+    param['colsample_bytree'] = 0.7
     param['seed'] = seed_val
-    num_rounds = 2000
+    num_rounds = num_rounds
 
     plst = list(param.items())
     xgtrain = xgb.DMatrix(train_X, label=train_y)
@@ -616,33 +615,22 @@ def runXGB(train_X, train_y, test_X, test_y=None, test_X2=None, seed_val=0, chil
     if test_y is not None:
         xgtest = xgb.DMatrix(test_X, label=test_y)
         watchlist = [ (xgtrain,'train'), (xgtest, 'test') ]
-        model = xgb.train(plst, xgtrain, num_rounds, watchlist, early_stopping_rounds=50, verbose_eval=20)
+        model = xgb.train(plst, xgtrain, num_rounds, watchlist, early_stopping_rounds=20)
     else:
         xgtest = xgb.DMatrix(test_X)
         model = xgb.train(plst, xgtrain, num_rounds)
 
-    pred_test_y = model.predict(xgtest, ntree_limit = model.best_ntree_limit)
-    if test_X2 is not None:
-        xgtest2 = xgb.DMatrix(test_X2)
-        pred_test_y2 = model.predict(xgtest2, ntree_limit = model.best_ntree_limit)
-    return pred_test_y, pred_test_y2, model
+    pred_test_y = model.predict(xgtest)
+    return model, pred_test_y
 
-kf = model_selection.KFold(n_splits=5, shuffle=True, random_state=2017)
-cv_scores = []
-pred_full_test = 0
-pred_train = np.zeros([train_df.shape[0], len(labels)])
-for dev_index, val_index in kf.split(train_X):
-    dev_X, val_X = train_X.loc[dev_index], train_X.loc[val_index]
-    dev_y, val_y = train_y[dev_index], train_y[val_index]
-    pred_val_y, pred_test_y, model = runXGB(dev_X, dev_y, val_X, val_y, test_X, seed_val=0, colsample=0.7)
-    pred_full_test = pred_full_test + pred_test_y
-    pred_train[val_index,:] = pred_val_y
-    cv_scores.append(metrics.log_loss(val_y, pred_val_y))
-print("cv scores : ", cv_scores)
+preds = np.zeros((test_X.shape[0], len(labels)))
 
-pred_full_test /= 5.0
+for i, j in enumerate(labels):
+    print('fit '+j)
+    model, pred_y = runXGB(train_X, train_y[:,i], test_X)
+    preds[:,i] = pred_y
 
-out_df = pd.DataFrame(pred_full_test)
+out_df = pd.DataFrame(preds)
 out_df.columns = labels
 out_df.insert(0, 'id', test_id)
 out_df.to_csv("../output/result.csv", index=False)
