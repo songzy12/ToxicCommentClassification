@@ -122,7 +122,7 @@ def feature_cnt(df):
     df["num_chars"] = df['comment_text'].apply(len)
     
     ## Number of stopwords in the text ##
-    #eng_stopwords = set(stopwords.words("english"))
+    eng_stopwords = set(stopwords.words("english"))
     df["num_stopwords"] = df["split"].apply(lambda x: len([w for w in x if w in eng_stopwords]))
     
     ## Number of punctuations in the text ##
@@ -547,7 +547,6 @@ for dev_index, val_index in kf.split(train_X):
         cv_scores.append(metrics.log_loss(val_y[:,i], pred_val_y[:,0]))
 print("Mean cv score : ", np.mean(cv_scores))
 pred_full_test = pred_full_test / 5.
-
 
 # add the predictions as new features #
 for i in range(6):
