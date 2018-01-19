@@ -12,6 +12,12 @@ Swear words: https://github.com/Donskov7/toxic_comments/tree/master/data
 
   **score: 0.041, rank: 169**
 
+  For each single model here, the scores are:
+
+  * BiLSTM + Attention: **0.048**
+  * LSTM + Glove: **0.046**
+  * TFIDF (char/word) + SVM: **0.047**
+
 
 * Average of LSTM + GloVe and TFIDF (char/word) + SVM: 
 
@@ -20,6 +26,10 @@ Swear words: https://github.com/Donskov7/toxic_comments/tree/master/data
 * Average of LSTM and NB+SVM: 
 
   **score: 0.052, rank: 608**
+
+## XGBoost
+
+**score: 0.054**
 
 ## GloVe LSTM
 
