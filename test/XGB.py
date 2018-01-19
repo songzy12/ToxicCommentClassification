@@ -242,9 +242,9 @@ def initNN(nb_words_cnt,max_len):
     model.add(Flatten())
     model.add(Dense(800, activation='relu'))
     model.add(Dropout(0.5))
-    model.add(Dense(len(labels), activation='softmax'))
+    model.add(Dense(len(labels), activation='sigmoid'))
 
-    model.compile(loss='categorical_crossentropy', optimizer='adam', metrics = ['accuracy'])
+    model.compile(loss='binary_crossentropy', optimizer='adam', metrics = ['accuracy'])
     return model
 
 def doNN(X_train,X_test,Y_train):
@@ -320,10 +320,10 @@ def initNN_glove():
     model.add(BatchNormalization())
 
     model.add(Dense(len(labels)))
-    model.add(Activation('softmax'))
+    model.add(Activation('sigmoid'))
 
     # compile the model
-    model.compile(loss='categorical_crossentropy', optimizer='adam')
+    model.compile(loss='binary_crossentropy', optimizer='adam')
     return model
 
 def doNN_glove(X_train,X_test,Y_train,xtrain_glove,xtest_glove):
@@ -365,9 +365,9 @@ def initFastText(embedding_dims,input_dim):
     model = Sequential()
     model.add(Embedding(input_dim=input_dim, output_dim=embedding_dims))
     model.add(GlobalAveragePooling1D())
-    model.add(Dense(len(labels), activation='softmax'))
+    model.add(Dense(len(labels), activation='sigmoid'))
 
-    model.compile(loss='categorical_crossentropy',
+    model.compile(loss='binary_crossentropy',
                   optimizer='adam',
                   metrics=['accuracy'])
     return model
@@ -444,6 +444,14 @@ def doFastText(X_train,X_test,Y_train):
 train_df,test_df = doFastText(train_df,test_df,train_y)
 print('FastText finished...')
 
+#df.to_pickle(file_name)
+#df = pd.read_pickle(file_name)
+try:
+    train_df.to_pickle('../output/train_df.pkl')
+    test_df.to_pickle('../output/test_df.pkl')
+except:
+    print(sys.exc_info()[0])
+    code.interact(local=locals())
 
 cols_to_drop = ['comment_text', 'split']
 train_X = train_df.drop(cols_to_drop, axis=1)
@@ -634,3 +642,4 @@ out_df = pd.DataFrame(preds)
 out_df.columns = labels
 out_df.insert(0, 'id', test_id)
 out_df.to_csv("../output/result.csv", index=False)
+code.interact(local=locals())
