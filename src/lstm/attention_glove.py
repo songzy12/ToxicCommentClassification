@@ -320,7 +320,7 @@ model_checkpoint = ModelCheckpoint(bst_model_path, save_best_only=True, save_wei
 
 hist = model.fit(data_train, labels_train, \
         validation_data=(data_val, labels_val), \
-        epochs=16, batch_size=1024, shuffle=True, \
+        epochs=64, batch_size=1024, shuffle=True, \
         callbacks=[early_stopping, model_checkpoint])
          
 model.load_weights(bst_model_path)
@@ -337,4 +337,4 @@ sample_submission = pd.read_csv(path + "sample_submission.csv")
 sample_submission[list_classes] = y_test
 
 print('STAMP:', STAMP)
-sample_submission.to_csv(path+'../output/'+'attention_%.4f_'%(bst_val_score)+STAMP+'.csv', index=False)
+sample_submission.to_csv(path+'../output/'+'submission_%.4f_'%(bst_val_score)+STAMP+'.csv', index=False)

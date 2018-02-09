@@ -83,7 +83,7 @@ def auc_roc(y_true, y_pred):
 
 inp = Input(shape=(maxlen,))
 # NOTE: trainable=False
-x = Embedding(max_features, embed_size, weights=[embedding_matrix],trainable=True)(inp)
+x = Embedding(max_features, embed_size, weights=[embedding_matrix],trainable=False)(inp)
 # TODO: tune units parameter 
 lstm_units = 50
 dense_units = 50
@@ -105,7 +105,7 @@ early_stopping = EarlyStopping(monitor='val_loss',
                                patience=2,
                                verbose=0, mode='auto')
 
-stamp = 'lstm_glove_units_%d_dropout_%.2f' % (lstm_units, dropout)                               
+stamp = 'bilstm_glove_units_%d_dropout_%.2f' % (lstm_units, dropout)                               
 bst_model_path = model_path + stamp + '.h5'
 model_checkpoint = ModelCheckpoint(bst_model_path, save_best_only=True, save_weights_only=True)
 
