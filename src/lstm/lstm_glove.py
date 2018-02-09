@@ -5,28 +5,29 @@ from keras.preprocessing.sequence import pad_sequences
 from keras.layers import Dense, Input, LSTM, Embedding, Dropout, Activation
 from keras.layers import Bidirectional, GlobalMaxPool1D
 from keras.models import Model
-from keras import initializers, regularizers, constraints, optimizers, layers, callbacks
+from keras.callbacks import EarlyStopping, ModelCheckpoint
+from keras import initializers, regularizers, constraints, optimizers, layers
 
 import tensorflow as tf
 
-callbacks.EarlyStopping(monitor='val_loss',
-                        min_delta=0,
-                        patience=2,
-                        verbose=0, mode='auto')
+src_path = '../'
 
-path = '../input/'
-comp = './'
-EMBEDDING_FILE=path+'glove.6B.100d.txt'
-TRAIN_DATA_FILE=path+'train.csv'
-TEST_DATA_FILE=path+'test.csv'
+input_path = src_path + '../input/'
+output_path = src_path + '../output/'
+model_path = src_path + '../weights/'
 
-# NOTE: https://www.kaggle.com/sbongo/do-pretrained-embeddings-give-you-the-extra-edge
+EMBEDDING_FILE=input_path+'glove.6B.100d.txt'
+TRAIN_DATA_FILE=input_path+'train.csv'
+TEST_DATA_FILE=input_path+'test.csv'
+
+# https://www.kaggle.com/sbongo/do-pretrained-embeddings-give-you-the-extra-edge
+# https://www.kaggle.com/ambarish/toxic-comments-eda-and-xgb-modelling
 # Here we can get a estimation of our hyper-parameters
 # TODO: tune this embed size 
 embed_size = 100 # how big is each word vector
 # wordCount = {'word2vec':66078,'glove':81610,'fasttext':59613,'baseline':210337}
 max_features = 80000 # how many unique words to use (i.e num rows in embedding vector)
-maxlen = 200 # max number of words in a comment to use
+maxlen = 400 # max number of words in a comment to use
 
 train = pd.read_csv(TRAIN_DATA_FILE)
 test = pd.read_csv(TEST_DATA_FILE)
@@ -82,11 +83,14 @@ def auc_roc(y_true, y_pred):
 
 inp = Input(shape=(maxlen,))
 # NOTE: trainable=False
-x = Embedding(max_features, embed_size, weights=[embedding_matrix],trainable=False)(inp)
-x = Bidirectional(LSTM(50, return_sequences=True, dropout=0.1, recurrent_dropout=0.1))(x)
+x = Embedding(max_features, embed_size, weights=[embedding_matrix],trainable=True)(inp)
+# TODO: tune units parameter 
+lstm_units = 50
+dropout = 0.1
+x = Bidirectional(LSTM(lstm_units, return_sequences=True, dropout=dropout, recurrent_dropout=dropout))(x)
 x = GlobalMaxPool1D()(x)
-x = Dense(50, activation="relu")(x)
-x = Dropout(0.1)(x)
+x = Dense(lstm_units, activation="relu")(x)
+x = Dropout(dropout)(x)
 x = Dense(len(list_classes), activation="sigmoid")(x)
 model = Model(inputs=inp, outputs=x)
 model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy', auc_roc])
@@ -95,12 +99,24 @@ model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy',
 # batch_size: len(train): 159571 len(test): 153164
 # epochs: check the valid loss and training loss
 
-history = model.fit(X_t, y, batch_size=1024, epochs=16, validation_split=0.1)
+early_stopping = EarlyStopping(monitor='val_loss',
+                               min_delta=0,
+                               patience=2,
+                               verbose=0, mode='auto')
 
+stamp = 'lstm_glove_units_%d_dropout_%.2f' % (lstm_units, dropout)                               
+bst_model_path = model_path + stamp + '.h5'
+model_checkpoint = ModelCheckpoint(bst_model_path, save_best_only=True, save_weights_only=True)
+
+hist = model.fit(X_t, y, batch_size=1024, epochs=200, shuffle=True, validation_split=0.1,
+                 callbacks=[early_stopping, model_checkpoint])
+bst_val_score = min(hist.history['val_loss'])
+
+model.load_weights(bst_model_path)
 # print(history.history.keys())
 # print(history.history['val_loss'])
 
 y_test = model.predict([X_te], batch_size=1024, verbose=1)
-sample_submission = pd.read_csv(path+'sample_submission.csv')
+sample_submission = pd.read_csv(input_path+'sample_submission.csv')
 sample_submission[list_classes] = y_test
-sample_submission.to_csv('../output/lstm_glove_submission.csv', index=False)
+sample_submission.to_csv(output_path+'submission_%.4f_%s.csv'%(bst_val_score, stamp), index=False)
