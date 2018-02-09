@@ -86,10 +86,11 @@ inp = Input(shape=(maxlen,))
 x = Embedding(max_features, embed_size, weights=[embedding_matrix],trainable=True)(inp)
 # TODO: tune units parameter 
 lstm_units = 50
+dense_units = 50
 dropout = 0.1
 x = Bidirectional(LSTM(lstm_units, return_sequences=True, dropout=dropout, recurrent_dropout=dropout))(x)
 x = GlobalMaxPool1D()(x)
-x = Dense(lstm_units, activation="relu")(x)
+x = Dense(dense_units, activation="relu")(x)
 x = Dropout(dropout)(x)
 x = Dense(len(list_classes), activation="sigmoid")(x)
 model = Model(inputs=inp, outputs=x)
@@ -108,7 +109,7 @@ stamp = 'lstm_glove_units_%d_dropout_%.2f' % (lstm_units, dropout)
 bst_model_path = model_path + stamp + '.h5'
 model_checkpoint = ModelCheckpoint(bst_model_path, save_best_only=True, save_weights_only=True)
 
-hist = model.fit(X_t, y, batch_size=1024, epochs=200, shuffle=True, validation_split=0.1,
+hist = model.fit(X_t, y, batch_size=1024, epochs=16, shuffle=True, validation_split=0.1,
                  callbacks=[early_stopping, model_checkpoint])
 bst_val_score = min(hist.history['val_loss'])
 

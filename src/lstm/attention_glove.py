@@ -31,16 +31,11 @@ from keras.models import Model
 from keras.layers.normalization import BatchNormalization
 from keras.callbacks import EarlyStopping, ModelCheckpoint
 
-
-
-
 import sys
 
 ########################################
 ## set directories and parameters
 ########################################
-
-
 
 from keras import backend as K
 from keras.engine.topology import Layer
@@ -143,20 +138,20 @@ class Attention(Layer):
         #return input_shape[0], input_shape[-1]
         return input_shape[0],  self.features_dim
         
-path = '../input/'
+path = '../../input/'
 EMBEDDING_FILE=path+'glove.6B.100d.txt'
 TRAIN_DATA_FILE=path+'train.csv'
 TEST_DATA_FILE=path+'test.csv'
 
-MAX_SEQUENCE_LENGTH = 150
-MAX_NB_WORDS = 100000
+MAX_SEQUENCE_LENGTH = 400
+MAX_NB_WORDS = 80000
 EMBEDDING_DIM = 100 
 VALIDATION_SPLIT = 0.1
 
-num_lstm = 300
-num_dense = 256
-rate_drop_lstm = 0.25
-rate_drop_dense = 0.25
+num_lstm = 50
+num_dense = 50
+rate_drop_lstm = 0.1
+rate_drop_dense = 0.1
 
 act = 'relu'
 
@@ -316,17 +311,17 @@ model.compile(loss='binary_crossentropy',
         metrics=['accuracy'])
 print(model.summary())
 
-STAMP = 'simple_lstm_glove_vectors_%.2f_%.2f'%(rate_drop_lstm,rate_drop_dense)
+STAMP = 'attention_%.2f_%.2f'%(rate_drop_lstm,rate_drop_dense)
 print(STAMP)
 
-early_stopping =EarlyStopping(monitor='val_loss', patience=5)
-bst_model_path = STAMP + '.h5'
+early_stopping = EarlyStopping(monitor='val_loss', patience=5)
+bst_model_path = path + '../weights/' + STAMP + '.h5'
 model_checkpoint = ModelCheckpoint(bst_model_path, save_best_only=True, save_weights_only=True)
 
 hist = model.fit(data_train, labels_train, \
         validation_data=(data_val, labels_val), \
-        epochs=50, batch_size=256, shuffle=True, \
-         callbacks=[early_stopping, model_checkpoint])
+        epochs=16, batch_size=1024, shuffle=True, \
+        callbacks=[early_stopping, model_checkpoint])
          
 model.load_weights(bst_model_path)
 bst_val_score = min(hist.history['val_loss'])
@@ -338,8 +333,8 @@ print('Start making the submission before fine-tuning')
 
 y_test = model.predict([test_data], batch_size=1024, verbose=1)
 
-sample_submission = pd.read_csv("../input/sample_submission.csv")
+sample_submission = pd.read_csv(path + "sample_submission.csv")
 sample_submission[list_classes] = y_test
 
 print('STAMP:', STAMP)
-sample_submission.to_csv('../output/attention_%.4f_'%(bst_val_score)+STAMP+'.csv', index=False)
+sample_submission.to_csv(path+'../output/'+'attention_%.4f_'%(bst_val_score)+STAMP+'.csv', index=False)
