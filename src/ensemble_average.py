@@ -17,4 +17,4 @@ for f in os.listdir(output_path):
         p0[label_cols] += p[label_cols]
 p0[label_cols] = p0[label_cols] / cnt
 
-p0.to_csv('submission.7z', index=False, compression='gzip')
+p0.to_csv('submission.csv', index=False)#, compression='gzip')
