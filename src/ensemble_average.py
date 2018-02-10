@@ -11,7 +11,7 @@ p0 = None
 for f in os.listdir(output_path):
     cnt += 1
     p = pd.read_csv(output_path+f)
-    if p0 == None:
+    if p0 is None:
         p0 = p.copy()
     else:
         p0[label_cols] += p[label_cols]
