@@ -43,7 +43,7 @@ losses = []
 predictions = {'id': test['id']}
 for class_name in class_names:
     train_target = train[class_name]
-    classifier = LogisticRegression(C=4.0, solver='sag')
+    classifier = LogisticRegression(C=4.0, solver='sag', max_iter=4000) # NOTE: max_iter
 
     cv_loss = np.mean(cross_val_score(classifier, train_features, train_target, cv=3, scoring='neg_log_loss'))
     losses.append(cv_loss)
@@ -55,4 +55,4 @@ for class_name in class_names:
 print('Total CV loss is {}'.format(np.mean(losses)))
 
 submission = pd.DataFrame.from_dict(predictions)
-submission.to_csv('../output/submission_%.4f_tfidf_lr.csv'%(np.mean(losses)), index=False)
+submission.to_csv('../output/submission_%.4f_tfidf_lr.csv'%(-np.mean(losses)), index=False)
