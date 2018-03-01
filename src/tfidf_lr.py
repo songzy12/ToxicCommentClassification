@@ -55,4 +55,4 @@ for class_name in class_names:
 print('Total CV loss is {}'.format(np.mean(losses)))
 
 submission = pd.DataFrame.from_dict(predictions)
-submission.to_csv('../output/tfidf_lr_submission.csv', index=False)
+submission.to_csv('../output/submission_%.4f_tfidf_lr.csv'%(np.mean(losses)), index=False)

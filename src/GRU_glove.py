@@ -9,7 +9,7 @@ from keras.models import Model
 from keras.layers import Input, Dense, Embedding, SpatialDropout1D, concatenate
 from keras.layers import GRU, Bidirectional, GlobalAveragePooling1D, GlobalMaxPooling1D
 from keras.preprocessing import text, sequence
-from keras.callbacks import Callback, EarlyStopping
+from keras.callbacks import Callback, EarlyStopping, ModelCheckpoint
 
 import warnings
 warnings.filterwarnings('ignore')
@@ -31,7 +31,9 @@ X_test = test["comment_text"].fillna("fillna").values
 
 
 max_features = 30000
+max_features = 80000
 maxlen = 100
+maxlen = 400
 embed_size = 100 
 
 tokenizer = text.Tokenizer(num_words=max_features)
@@ -98,11 +100,16 @@ early_stopping = EarlyStopping(monitor='val_loss',
                                min_delta=0,
                                patience=2,
                                verbose=0, mode='auto')
+stamp = 'gru_glove'
+model_path = '../weights/'
+bst_model_path = model_path + stamp + '.h5'
+model_checkpoint = ModelCheckpoint(bst_model_path, save_best_only=True, save_weights_only=True)
 
 hist = model.fit(X_tra, y_tra, batch_size=batch_size, epochs=epochs, validation_data=(X_val, y_val),
-                 callbacks=[early_stopping, RocAuc], verbose=2)
+                 callbacks=[early_stopping, model_checkpoint, RocAuc], verbose=2)
 bst_val_score = min(hist.history['val_loss'])                 
 
+model.load_weights(bst_model_path)
 
 y_pred = model.predict(x_test, batch_size=1024)
 submission[["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]] = y_pred
