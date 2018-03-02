@@ -46,3 +46,6 @@ from keras.preprocessing import sequence, text
 from keras.preprocessing.sequence import pad_sequences
 from keras.preprocessing.text import Tokenizer
 from keras.utils import np_utils
+
+# Using Neural Networks and Facebook's Fasttext
+earlyStopping=EarlyStopping(monitor='val_loss', patience=0, verbose=0, mode='auto')

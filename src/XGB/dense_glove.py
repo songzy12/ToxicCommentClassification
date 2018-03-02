@@ -52,9 +52,6 @@ train_df[['sent_vec_'+str(i) for i in range(100)]] = pd.DataFrame(glove_vecs_tra
 test_df[['sent_vec_'+str(i) for i in range(100)]] = pd.DataFrame(glove_vecs_test.tolist())
 print("Glove sentence vector finished...")
 
-# Using Neural Networks and Facebook's Fasttext
-earlyStopping=EarlyStopping(monitor='val_loss', patience=0, verbose=0, mode='auto')
-
 ## NN Glove
 
 def doAddNN_glove(X_train,X_test,pred_train,pred_test):
@@ -108,10 +105,10 @@ def doNN_glove(X_train,X_test,Y_train,xtrain_glove,xtest_glove):
 train_df, test_df = doNN_glove(train_df,test_df,train_y,glove_vecs_train,glove_vecs_test)
 print('NN Glove finished...')
 
-code.interact(local=locals())
-
 y_pred = test_df[['nn_glove_'+str(i) for i in range(6)]]
 submission = pd.read_csv('../../input/sample_submission.csv')
 submission[["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]] = y_pred
 # NOTE: this is somehow terrible
-submission.to_csv('../../output/submission_0.0658_nn_glove.csv', index=False)
+submission.to_csv('../../output/submission_0.0658_dense_glove.csv', index=False)
+
+code.interact(local=locals())
