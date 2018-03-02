@@ -1,6 +1,13 @@
+from util import *
+
 # load the GloVe vectors in a dictionary:
 
-wv = '../input/glove.6B.100d.txt'
+wv = '../../input/glove.6B.100d.txt'
+train_df = pd.read_csv("../../input/train.csv")
+test_df = pd.read_csv("../../input/test.csv")
+
+labels = ['toxic', 'severe_toxic', 'obscene', 'threat', 'insult', 'identity_hate']
+train_y = train_df[labels].values
 
 def loadWordVecs():
     embeddings_index = {}
@@ -44,9 +51,6 @@ glove_vecs_train,glove_vecs_test,embeddings_index = doGlove(train_df['comment_te
 train_df[['sent_vec_'+str(i) for i in range(100)]] = pd.DataFrame(glove_vecs_train.tolist())
 test_df[['sent_vec_'+str(i) for i in range(100)]] = pd.DataFrame(glove_vecs_test.tolist())
 print("Glove sentence vector finished...")
-
-# Using Neural Networks and Facebook's Fasttext
-earlyStopping=EarlyStopping(monitor='val_loss', patience=0, verbose=0, mode='auto')
 
 ## NN Glove
 
@@ -98,7 +102,13 @@ def doNN_glove(X_train,X_test,Y_train,xtrain_glove,xtest_glove):
         pred_train[val_index,:] = pred_val_y
     return doAddNN_glove(X_train,X_test,pred_train,pred_full_test/5)
 
-train_df,test_df = doNN_glove(train_df,test_df,train_y,glove_vecs_train,glove_vecs_test)
+train_df, test_df = doNN_glove(train_df,test_df,train_y,glove_vecs_train,glove_vecs_test)
 print('NN Glove finished...')
 
+y_pred = test_df[['nn_glove_'+str(i) for i in range(6)]]
+submission = pd.read_csv('../../input/sample_submission.csv')
+submission[["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]] = y_pred
+# NOTE: this is somehow terrible
+submission.to_csv('../../output/submission_0.0658_dense_glove.csv', index=False)
 
+code.interact(local=locals())

@@ -1,3 +1,12 @@
+from util import *
+
+train_df = pd.read_csv("../../input/train.csv")
+test_df = pd.read_csv("../../input/test.csv")
+
+
+labels = ['toxic', 'severe_toxic', 'obscene', 'threat', 'insult', 'identity_hate']
+train_y = train_df[labels].values
+
 # NN
 def doAddNN(X_train,X_test,pred_train,pred_test):
     for i in range(6):
@@ -24,8 +33,8 @@ def initNN(nb_words_cnt,max_len):
     return model
 
 def doNN(X_train,X_test,Y_train):
-    max_len = 70
-    nb_words = 10000
+    max_len = 400
+    nb_words = 80000
     
     print('Processing text dataset')
     texts_1 = []
@@ -65,7 +74,7 @@ def doNN(X_train,X_test,Y_train):
         dev_X, val_X = xtrain_pad[dev_index], xtrain_pad[val_index]
         dev_y, val_y = ytrain_enc[dev_index], ytrain_enc[val_index]
         model = initNN(nb_words_cnt,max_len)
-        model.fit(dev_X, y=dev_y, batch_size=32, epochs=4, verbose=1,validation_data=(val_X, val_y),callbacks=[earlyStopping])
+        model.fit(dev_X, y=dev_y, batch_size=32, epochs=16, verbose=1,validation_data=(val_X, val_y),callbacks=[earlyStopping])
         pred_val_y = model.predict(val_X)
         pred_test_y = model.predict(xtest_pad)
         pred_full_test = pred_full_test + pred_test_y
@@ -74,3 +83,11 @@ def doNN(X_train,X_test,Y_train):
 
 train_df,test_df = doNN(train_df,test_df,train_y)
 print('NN finished...')
+
+y_pred = test_df[['nn_'+str(i) for i in range(6)]]
+submission = pd.read_csv('../../input/sample_submission.csv')
+submission[["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]] = y_pred
+# NOTE: this is somehow terrible
+
+code.interact(local=locals())
+submission.to_csv('../../output/submission_0.0513_cnn_random.csv', index=False)
