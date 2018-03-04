@@ -16,7 +16,8 @@ def doAddNN(X_train,X_test,pred_train,pred_test):
 
 def initNN(nb_words_cnt,max_len):
     model = Sequential()
-    model.add(Embedding(nb_words_cnt,32,input_length=max_len))
+    # NOTE: output_dim=100
+    model.add(Embedding(nb_words_cnt, 100, input_length=max_len))
     model.add(Dropout(0.3))
     model.add(Conv1D(64,
                      5,
@@ -90,4 +91,4 @@ submission[["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_ha
 # NOTE: this is somehow terrible
 
 code.interact(local=locals())
-submission.to_csv('../../output/submission_0.0513_cnn_random.csv', index=False)
+submission.to_csv('../../output/submission_0.0518_cnn_random.csv', index=False)

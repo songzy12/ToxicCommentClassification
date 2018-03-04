@@ -1,3 +1,4 @@
+from util import *
 pd.options.mode.chained_assignment = None
 
 ## Read the train and test dataset and check the top few lines ##
@@ -300,5 +301,5 @@ for i, j in enumerate(labels):
 out_df = pd.DataFrame(preds)
 out_df.columns = labels
 out_df.insert(0, 'id', test_id)
-out_df.to_csv(src_path+"../output/submission_xgb.csv", index=False)
 code.interact(local=locals())
+out_df.to_csv(src_path+"../output/submission_xgb.csv", index=False)
