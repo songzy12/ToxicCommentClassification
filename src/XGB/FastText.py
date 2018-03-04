@@ -1,11 +1,17 @@
+from util import *
 # Fast Text
+
+train_df = pd.read_csv("../../input/train.csv")
+test_df = pd.read_csv("../../input/test.csv")
+
+labels = ['toxic', 'severe_toxic', 'obscene', 'threat', 'insult', 'identity_hate']
+train_y = train_df[labels].values
 
 def doAddFastText(X_train,X_test,pred_train,pred_test):
     for i in range(6):
         X_train['ff_'+str(i)] = pred_train[:,i]
         X_test['ff_'+str(i)] = pred_test[:,i]
     return X_train,X_test
-
 
 def initFastText(embedding_dims,input_dim):
     model = Sequential()
@@ -56,11 +62,11 @@ def doFastText(X_train,X_test,Y_train):
     tokenizer.fit_on_texts(docs)
     docs = tokenizer.texts_to_sequences(docs)
 
-    maxlen = 300
+    maxlen = 400
 
     docs = pad_sequences(sequences=docs, maxlen=maxlen)
     input_dim = np.max(docs) + 1
-    embedding_dims = 20
+    embedding_dims = 100
 
     # we need to binarize the labels for the neural net
     #ytrain_enc = np_utils.to_categorical(Y_train)
@@ -89,3 +95,11 @@ def doFastText(X_train,X_test,Y_train):
 
 train_df,test_df = doFastText(train_df,test_df,train_y)
 print('FastText finished...')
+
+code.interact(local=locals())
+y_pred = test_df[['ff_'+str(i) for i in range(6)]]
+submission = pd.read_csv('../../input/sample_submission.csv')
+submission[["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]] = y_pred
+
+# NOTE: this is somehow terrible
+submission.to_csv('../../output/submission_0.0658_fast_text.csv', index=False)
