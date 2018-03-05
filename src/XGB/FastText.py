@@ -102,4 +102,4 @@ submission = pd.read_csv('../../input/sample_submission.csv')
 submission[["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]] = y_pred
 
 # NOTE: this is somehow terrible
-submission.to_csv('../../output/submission_0.0658_fast_text.csv', index=False)
+submission.to_csv('../../output/submission_0.0416_fast_text.csv', index=False)
