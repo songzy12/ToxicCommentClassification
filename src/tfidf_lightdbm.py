@@ -16,6 +16,8 @@ from collections import defaultdict
 import os
 import psutil
 
+import code
+
 # Contraction replacement patterns
 cont_patterns = [
     (b'(W|w)on\'t', b'will not'),
@@ -269,8 +271,8 @@ if __name__ == '__main__':
     # Now go through folds
     # I use K-Fold for reasons described here : 
     # https://www.kaggle.com/c/jigsaw-toxic-comment-classification-challenge/discussion/49964
+    scores = []
     with timer("Scoring Light GBM"):
-        scores = []
         folds = KFold(n_splits=4, shuffle=True, random_state=1)
         lgb_round_dict = defaultdict(int)
         trn_lgbset = lgb.Dataset(csr_trn, free_raw_data=False)
@@ -333,4 +335,4 @@ if __name__ == '__main__':
                 submission[class_name] = model.predict(csr_sub, num_iteration=model.best_iteration)
 
 code.interact(local=locals())
-submission.to_csv("lvl0_lgbm_clean_sub.csv", index=False, float_format="%.8f")
+submission.to_csv("../output/submission_%.4f_tfidf_lightgbm.csv" % np.mean(scores), index=False, float_format="%.8f")

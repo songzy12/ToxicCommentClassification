@@ -18,7 +18,6 @@ import os
 os.environ['OMP_NUM_THREADS'] = '4'
 
 
-EMBEDDING_FILE = '../input/crawl-300d-2M.vec'
 EMBEDDING_FILE = '../input/glove.6B.100d.txt'
 
 train = pd.read_csv('../input/train.csv')
