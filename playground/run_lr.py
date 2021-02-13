@@ -9,8 +9,11 @@ from sklearn.model_selection import cross_val_score
 class_names = ['toxic', 'severe_toxic', 'obscene',
                'threat', 'insult', 'identity_hate']
 
-train = pd.read_csv('./input/train.csv').fillna(' ')
-test = pd.read_csv('./input/test.csv').fillna(' ')
+INPUT_DIR = '../input/'
+OUTPUT_DIR = '../output/'
+
+train = pd.read_csv(INPUT_DIR+'train.csv').fillna(' ')
+test = pd.read_csv(INPUT_DIR+'test.csv').fillna(' ')
 
 train_text = train['comment_text']
 test_text = test['comment_text']
@@ -62,5 +65,5 @@ for class_name in class_names:
 print('Total CV loss is {}'.format(np.mean(losses)))
 
 submission = pd.DataFrame.from_dict(predictions)
-submission.to_csv('./output/submission_%.4f_lr.csv' %
+submission.to_csv(OUTPUT_DIR+'submission_%.4f_lr.csv' %
                   (-np.mean(losses)), index=False)
