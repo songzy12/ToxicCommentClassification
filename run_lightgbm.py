@@ -1,22 +1,21 @@
-import numpy as np
-import pandas as pd
+from collections import defaultdict
 from contextlib import contextmanager
-from sklearn.feature_extraction.text import TfidfVectorizer
-from scipy.sparse import hstack
-import time
+import gc
 import re
 import string
+import time
+
+import numpy as np
+import pandas as pd
+
 from scipy.sparse import csr_matrix
-from sklearn.preprocessing import MinMaxScaler
-import lightgbm as lgb
+from scipy.sparse import hstack
+from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.model_selection import KFold
 from sklearn.metrics import roc_auc_score
-import gc
-from collections import defaultdict
-import os
-import psutil
+from sklearn.preprocessing import MinMaxScaler
 
-import code
+import lightgbm as lgb
 
 # Contraction replacement patterns
 cont_patterns = [
@@ -61,7 +60,8 @@ def prepare_for_char_n_gram(text):
         clean = re.sub(pattern, repl, clean)
     # 4. Drop puntuation
     # I could have used regex package with regex.sub(b"\p{P}", " ")
-    exclude = re.compile(b'[%s]' % re.escape(bytes(string.punctuation, encoding='utf-8')))
+    exclude = re.compile(b'[%s]' % re.escape(
+        bytes(string.punctuation, encoding='utf-8')))
     clean = b" ".join([exclude.sub(b'', token) for token in clean.split()])
     # 5. Drop numbers - as a scientist I don't think numbers are toxic ;-)
     clean = re.sub(b"\d+", b" ", clean)
@@ -89,44 +89,61 @@ def get_indicators_and_clean_comments(df):
     Though I'm not sure all of them improve scores
     """
     # Count number of \n
-    df["ant_slash_n"] = df["comment_text"].apply(lambda x: count_regexp_occ(r"\n", x))
+    df["ant_slash_n"] = df["comment_text"].apply(
+        lambda x: count_regexp_occ(r"\n", x))
     # Get length in words and characters
     df["raw_word_len"] = df["comment_text"].apply(lambda x: len(x.split()))
     df["raw_char_len"] = df["comment_text"].apply(lambda x: len(x))
     # Check number of upper case, if you're angry you may write in upper case
-    df["nb_upper"] = df["comment_text"].apply(lambda x: count_regexp_occ(r"[A-Z]", x))
+    df["nb_upper"] = df["comment_text"].apply(
+        lambda x: count_regexp_occ(r"[A-Z]", x))
     # Number of F words - f..k contains folk, fork,
-    df["nb_fk"] = df["comment_text"].apply(lambda x: count_regexp_occ(r"[Ff]\S{2}[Kk]", x))
+    df["nb_fk"] = df["comment_text"].apply(
+        lambda x: count_regexp_occ(r"[Ff]\S{2}[Kk]", x))
     # Number of S word
-    df["nb_sk"] = df["comment_text"].apply(lambda x: count_regexp_occ(r"[Ss]\S{2}[Tt]", x))
+    df["nb_sk"] = df["comment_text"].apply(
+        lambda x: count_regexp_occ(r"[Ss]\S{2}[Tt]", x))
     # Number of D words
-    df["nb_dk"] = df["comment_text"].apply(lambda x: count_regexp_occ(r"[dD]ick", x))
+    df["nb_dk"] = df["comment_text"].apply(
+        lambda x: count_regexp_occ(r"[dD]ick", x))
     # Number of occurence of You, insulting someone usually needs someone called : you
-    df["nb_you"] = df["comment_text"].apply(lambda x: count_regexp_occ(r"\W[Yy]ou\W", x))
+    df["nb_you"] = df["comment_text"].apply(
+        lambda x: count_regexp_occ(r"\W[Yy]ou\W", x))
     # Just to check you really refered to my mother ;-)
-    df["nb_mother"] = df["comment_text"].apply(lambda x: count_regexp_occ(r"\Wmother\W", x))
+    df["nb_mother"] = df["comment_text"].apply(
+        lambda x: count_regexp_occ(r"\Wmother\W", x))
     # Just checking for toxic 19th century vocabulary
-    df["nb_ng"] = df["comment_text"].apply(lambda x: count_regexp_occ(r"\Wnigger\W", x))
+    df["nb_ng"] = df["comment_text"].apply(
+        lambda x: count_regexp_occ(r"\Wnigger\W", x))
     # Some Sentences start with a <:> so it may help
-    df["start_with_columns"] = df["comment_text"].apply(lambda x: count_regexp_occ(r"^\:+", x))
+    df["start_with_columns"] = df["comment_text"].apply(
+        lambda x: count_regexp_occ(r"^\:+", x))
     # Check for time stamp
-    df["has_timestamp"] = df["comment_text"].apply(lambda x: count_regexp_occ(r"\d{2}|:\d{2}", x))
+    df["has_timestamp"] = df["comment_text"].apply(
+        lambda x: count_regexp_occ(r"\d{2}|:\d{2}", x))
     # Check for dates 18:44, 8 December 2010
-    df["has_date_long"] = df["comment_text"].apply(lambda x: count_regexp_occ(r"\D\d{2}:\d{2}, \d{1,2} \w+ \d{4}", x))
+    df["has_date_long"] = df["comment_text"].apply(
+        lambda x: count_regexp_occ(r"\D\d{2}:\d{2}, \d{1,2} \w+ \d{4}", x))
     # Check for date short 8 December 2010
-    df["has_date_short"] = df["comment_text"].apply(lambda x: count_regexp_occ(r"\D\d{1,2} \w+ \d{4}", x))
+    df["has_date_short"] = df["comment_text"].apply(
+        lambda x: count_regexp_occ(r"\D\d{1,2} \w+ \d{4}", x))
     # Check for http links
-    df["has_http"] = df["comment_text"].apply(lambda x: count_regexp_occ(r"http[s]{0,1}://\S+", x))
+    df["has_http"] = df["comment_text"].apply(
+        lambda x: count_regexp_occ(r"http[s]{0,1}://\S+", x))
     # check for mail
     df["has_mail"] = df["comment_text"].apply(
-        lambda x: count_regexp_occ(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', x)
+        lambda x: count_regexp_occ(
+            r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', x)
     )
     # Looking for words surrounded by == word == or """" word """"
-    df["has_emphasize_equal"] = df["comment_text"].apply(lambda x: count_regexp_occ(r"\={2}.+\={2}", x))
-    df["has_emphasize_quotes"] = df["comment_text"].apply(lambda x: count_regexp_occ(r"\"{4}\S+\"{4}", x))
+    df["has_emphasize_equal"] = df["comment_text"].apply(
+        lambda x: count_regexp_occ(r"\={2}.+\={2}", x))
+    df["has_emphasize_quotes"] = df["comment_text"].apply(
+        lambda x: count_regexp_occ(r"\"{4}\S+\"{4}", x))
 
     # Now clean comments
-    df["clean_comment"] = df["comment_text"].apply(lambda x: prepare_for_char_n_gram(x))
+    df["clean_comment"] = df["comment_text"].apply(
+        lambda x: prepare_for_char_n_gram(x))
 
     # Get the new length in words and characters
     df["clean_word_len"] = df["clean_comment"].apply(lambda x: len(x.split()))
@@ -136,7 +153,6 @@ def get_indicators_and_clean_comments(df):
     df["clean_chars"] = df["clean_comment"].apply(lambda x: len(set(x)))
     df["clean_chars_ratio"] = df["clean_comment"].apply(lambda x: len(set(x))) / df["clean_comment"].apply(
         lambda x: 1 + min(99, len(x)))
-
 
 
 def char_analyzer(text):
@@ -151,16 +167,16 @@ def char_analyzer(text):
 
 if __name__ == '__main__':
     gc.enable()
-    class_names = ['toxic', 'severe_toxic', 'obscene', 'threat', 'insult', 'identity_hate']
+    class_names = ['toxic', 'severe_toxic', 'obscene',
+                   'threat', 'insult', 'identity_hate']
 
     with timer("Reading input files"):
-        train = pd.read_csv('../input/train.csv').fillna(' ')
-        test = pd.read_csv('../input/test.csv').fillna(' ')
+        train = pd.read_csv('./input/train.csv').fillna(' ')
+        test = pd.read_csv('./input/test.csv').fillna(' ')
 
     with timer("Performing basic NLP"):
         get_indicators_and_clean_comments(train)
         get_indicators_and_clean_comments(test)
-
 
     # Scaling numerical features with MinMaxScaler though tree boosters don't need that
     with timer("Creating numerical features"):
@@ -263,13 +279,12 @@ if __name__ == '__main__':
         "feature_fraction": 0.8,
         "learning_rate": 0.1,
         "num_leaves": 31,
-        "verbose": -1,
         "min_split_gain": .1,
         "reg_alpha": .1
     }
 
     # Now go through folds
-    # I use K-Fold for reasons described here : 
+    # I use K-Fold for reasons described here :
     # https://www.kaggle.com/c/jigsaw-toxic-comment-classification-challenge/discussion/49964
     scores = []
     with timer("Scoring Light GBM"):
@@ -278,13 +293,13 @@ if __name__ == '__main__':
         trn_lgbset = lgb.Dataset(csr_trn, free_raw_data=False)
         del csr_trn
         gc.collect()
-        
+
         for class_name in class_names:
             print("Class %s scores : " % class_name)
             class_pred = np.zeros(len(train))
             train_target = train[class_name]
             trn_lgbset.set_label(train_target.values)
-            
+
             lgb_rounds = 500
 
             for n_fold, (trn_idx, val_idx) in enumerate(folds.split(train, train_target)):
@@ -301,22 +316,20 @@ if __name__ == '__main__':
                     early_stopping_rounds=50,
                     verbose_eval=0
                 )
-                class_pred[val_idx] = model.predict(trn_lgbset.data[val_idx], num_iteration=model.best_iteration)
-                score = roc_auc_score(train_target.values[val_idx], class_pred[val_idx])
-                
+                class_pred[val_idx] = model.predict(
+                    trn_lgbset.data[val_idx], num_iteration=model.best_iteration)
+                score = roc_auc_score(
+                    train_target.values[val_idx], class_pred[val_idx])
+
                 # Compute mean rounds over folds for each class
                 # So that it can be re-used for test predictions
                 lgb_round_dict[class_name] += model.best_iteration
-                print("\t Fold %d : %.6f in %3d rounds" % (n_fold + 1, score, model.best_iteration))
-            
-            print("full score : %.6f" % roc_auc_score(train_target, class_pred))
-            scores.append(roc_auc_score(train_target, class_pred))
-            train[class_name + "_oof"] = class_pred
+                print("\t Fold %d : %.6f in %3d rounds" %
+                      (n_fold + 1, score, model.best_iteration))
 
-        # Save OOF predictions - may be interesting for stacking...
-        train[["id"] + class_names + [f + "_oof" for f in class_names]].to_csv("lvl0_lgbm_clean_oof.csv",
-                                                                               index=False,
-                                                                               float_format="%.8f")
+            print("full score : %.6f" %
+                  roc_auc_score(train_target, class_pred))
+            scores.append(roc_auc_score(train_target, class_pred))
 
         print('Total CV score is {}'.format(np.mean(scores)))
 
@@ -330,9 +343,11 @@ if __name__ == '__main__':
                 model = lgb.train(
                     params=params,
                     train_set=trn_lgbset,
-                    num_boost_round=int(lgb_round_dict[class_name] / folds.n_splits)
+                    num_boost_round=int(
+                        lgb_round_dict[class_name] / folds.n_splits)
                 )
-                submission[class_name] = model.predict(csr_sub, num_iteration=model.best_iteration)
+                submission[class_name] = model.predict(
+                    csr_sub, num_iteration=model.best_iteration)
 
-code.interact(local=locals())
-submission.to_csv("../output/submission_%.4f_tfidf_lightgbm.csv" % np.mean(scores), index=False, float_format="%.8f")
+submission.to_csv("./output/submission_%.4f_tfidf_lightgbm.csv" %
+                  np.mean(scores), index=False, float_format="%.8f")
