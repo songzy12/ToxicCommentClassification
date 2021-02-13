@@ -1,5 +1,3 @@
-https://www.kaggle.com/jagangupta/lessons-from-toxic-blending-is-the-new-sexy
-
 ## rank 1
 
 https://www.kaggle.com/c/jigsaw-toxic-comment-classification-challenge/discussion/52557
@@ -172,41 +170,6 @@ Blending:
 * https://www.kaggle.com/hhstrand/hillclimb-ensembling/code
 * http://www.cs.cornell.edu/~alexn/papers/shotgun.icml04.revised.rev2.pdf
 
-## rank 25
-
-https://www.kaggle.com/c/jigsaw-toxic-comment-classification-challenge/discussion/52647
-
-## rank 33
-
-**Models (best private score shown):**
-
-- CapsuleNet (*0.9860 private*, 0.9859 public)
-- RNN Version 1 (*0.9858 private*, 0.9863 public)
-- RNN Version 2 (*0.9856 private*, 0.9861 public)
-- Two Layer CNN (*0.9826 private*, 0.9835 public)
-- NB-SVM (*0.9813 private*, 0.9813 public)
-
-**Ensembling (best private score shown):**
-
-- Level 1a: Average 10 out-of-fold predictions (as high as *0.9860 private*, 0.9859 public)
-- Level 1b: Average models with different embeddings (as high as *0.9866 private*, 0.9871 public)
-- Level 2a: LightGBM Stacking (*0.9870 private*, 0.9874 public)
-- Level 2b: Average multiple seeds (*0.9872 private*, 0.9876 public)
-
-## rank 34
-
-https://www.kaggle.com/c/jigsaw-toxic-comment-classification-challenge/discussion/52645
-
-blending: https://www.kaggle.com/tilii7/cross-validation-weighted-linear-blending-errors
-
-* It seems like taking almost every single public kernel, training them with 5CV, combining them with a little bit of special secret sauce and a good level 2 stacking scheme, is enough to do well at Kaggle.
-
-- Variety in embeddings is important for model diversity.
-- Varying input data is just as important, if not more important, than varying the model being used.
-- Pseduo-labeling and train/test augmentation can work.
-- Models that are weak on level 1 can be the best contributors to level 2, and models that are weak on level 2 can still be the best contributors to level 3.
-- DART mode on LightGBM can be really useful.
-
 ## MISC
 
 Google CoLaboratory: 
@@ -220,3 +183,5 @@ My experience was that the smaller vocab size didn't work very well
 Padding all sequences to the same length appears to have a significant regularizing effect
 
 I experimented with various pooling options (average, max, attention). The best turned out to be top-k pooling.
+
+https://www.kaggle.com/jagangupta/lessons-from-toxic-blending-is-the-new-sexy
