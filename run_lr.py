@@ -1,30 +1,33 @@
 import numpy as np
 import pandas as pd
 
+from scipy.sparse import hstack
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import cross_val_score
-from scipy.sparse import hstack
 
-class_names = ['toxic', 'severe_toxic', 'obscene', 'threat', 'insult', 'identity_hate']
+class_names = ['toxic', 'severe_toxic', 'obscene',
+               'threat', 'insult', 'identity_hate']
 
-train = pd.read_csv('../input/train.csv').fillna(' ')
-test = pd.read_csv('../input/test.csv').fillna(' ')
+train = pd.read_csv('./input/train.csv').fillna(' ')
+test = pd.read_csv('./input/test.csv').fillna(' ')
 
 train_text = train['comment_text']
 test_text = test['comment_text']
 all_text = pd.concat([train_text, test_text])
+print("Input Text Loaded...")
 
 word_vectorizer = TfidfVectorizer(
     sublinear_tf=True,
     strip_accents='unicode',
     analyzer='word',
     token_pattern=r'\w{1,}',
-    ngram_range=(1,1),
+    ngram_range=(1, 1),
     max_features=20000)
 word_vectorizer.fit(all_text)
 train_word_features = word_vectorizer.transform(train_text)
 test_word_features = word_vectorizer.transform(test_text)
+print("Word TFIDF Done...")
 
 char_vectorizer = TfidfVectorizer(
     sublinear_tf=True,
@@ -35,6 +38,7 @@ char_vectorizer = TfidfVectorizer(
 char_vectorizer.fit(all_text)
 train_char_features = char_vectorizer.transform(train_text)
 test_char_features = char_vectorizer.transform(test_text)
+print("Char TFIDF Done...")
 
 train_features = hstack((train_char_features, train_word_features))
 test_features = hstack((test_char_features, test_word_features))
@@ -42,10 +46,13 @@ test_features = hstack((test_char_features, test_word_features))
 losses = []
 predictions = {'id': test['id']}
 for class_name in class_names:
+    print("Label:", class_name)
     train_target = train[class_name]
-    classifier = LogisticRegression(C=4.0, solver='sag', max_iter=4000) # NOTE: max_iter
+    classifier = LogisticRegression(
+        C=4.0, solver='sag', max_iter=4000)  # NOTE: max_iter
 
-    cv_loss = np.mean(cross_val_score(classifier, train_features, train_target, cv=3, scoring='neg_log_loss'))
+    cv_loss = np.mean(cross_val_score(classifier, train_features,
+                                      train_target, cv=3, scoring='neg_log_loss'))
     losses.append(cv_loss)
     print('CV loss for class {} is {}'.format(class_name, cv_loss))
 
@@ -55,4 +62,5 @@ for class_name in class_names:
 print('Total CV loss is {}'.format(np.mean(losses)))
 
 submission = pd.DataFrame.from_dict(predictions)
-submission.to_csv('../output/submission_%.4f_tfidf_lr.csv'%(-np.mean(losses)), index=False)
+submission.to_csv('./output/submission_%.4f_lr.csv' %
+                  (-np.mean(losses)), index=False)
